@@ -26,11 +26,15 @@ PREY_START_ENERGY = 10      # How much energy prey starts with
 PREY_VISION_RADIUS = 75     # Radius of detection in pixels
 PREY_FLEE_THRESHOLD = 15    # Pixel radius at which flee desire starts
 
-PREY_ENERGY = 10            # Amount of energy gained from consuming prey
+PREY_ENERGY = 5            # Amount of energy gained from consuming prey
+
+##### PREDATOR VARIABLES #####
+PRED_START_ENERGY = 10
+PRED_VISION_RADIUS = 75     # Radius of detection in pixels
 
 ##### PLANT VARIABLES #####
-PLANT_ENERGY = 1.5        # Amount of energy gained from consuming plant
 REGROWTH_TIME = 15      # Time for plants to regrow
+PLANT_ENERGY = 2        # Amount of energy gained from consuming plant
 
 
 

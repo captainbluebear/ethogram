@@ -4,6 +4,8 @@ from logic.agents import PreyState
 import constants as c
 from math import ceil
 
+######################## PREY FUNCTIONS ########################
+
 def prey_get_closest_pred(world):
     '''
     Returns an array of the closest predator which falls within the vision radius for each prey. 
@@ -88,3 +90,61 @@ def prey_get_closest_food(world):
             closest_plants[i] = nearby_plant[closest_idx]
 
     return closest_plants
+
+
+######################## PREDATOR FUNCTIONS ########################
+
+def pred_get_closest_pred(world):
+    '''
+    Returns an array of the closest predator which falls within the vision radius for each pred. 
+    If there is none or no agent at that index, returns -1 for that idx.
+    Note: excludes self as viable option.
+    '''
+    pred = world.pred
+    closest_preds = np.full(pred.cap, -1)
+
+    for i in np.flatnonzero(world.pred.alive):
+        pos_i = pred.pos[i]
+        
+        r_cells = ceil(c.PRED_VISION_RADIUS/c.CELLSIZE)
+        nearby_pred = np.array(world.grid.nearby_pred(pos_i, r=r_cells), dtype=np.int32)
+        nearby_pred = nearby_pred[nearby_pred != i] # exclude self
+
+        if len(nearby_pred) == 0: # If nothing is nearby skip thru
+            continue
+
+        pred_dist_sq = np.sum((pred.pos[nearby_pred] - pos_i)**2, axis=1) # Getting dist sq, could do linalg.norm but it's slower
+        
+        closest_idx = np.argmin(pred_dist_sq)
+        
+        if pred_dist_sq[closest_idx] < c.PRED_VISION_RADIUS**2:
+            closest_preds[i] = nearby_pred[closest_idx]
+
+    return closest_preds
+
+def pred_get_closest_prey(world):
+    '''
+    Returns an array of the closest prey which falls within the vision radius for each pred. 
+    If there is none or no agent at that index, returns -1 for that idx.
+    '''
+    pred = world.pred
+    prey = world.prey
+    closest_prey = np.full(pred.cap, -1)
+
+    for i in np.flatnonzero(world.pred.alive):
+        pos_i = pred.pos[i]
+        
+        r_cells = ceil(c.PRED_VISION_RADIUS/c.CELLSIZE)
+        nearby_prey = np.array(world.grid.nearby_prey(pos_i, r=r_cells), dtype=np.int32)
+
+        if len(nearby_prey) == 0: # If nothing is nearby skip thru
+            continue
+
+        prey_dist_sq = np.sum((prey.pos[nearby_prey] - pos_i)**2, axis=1) # Getting dist sq, could do linalg.norm but it's slower
+        
+        closest_idx = np.argmin(prey_dist_sq)
+        
+        if prey_dist_sq[closest_idx] < c.PRED_VISION_RADIUS**2:
+            closest_prey[i] = nearby_prey[closest_idx]
+
+    return closest_prey

@@ -25,7 +25,7 @@ def step_consume_pred(world:WorldState):
     '''Define interaction for predators eating.'''
     for i in np.flatnonzero(world.pred.alive):
         for a in world.grid.nearby_prey(world.pred.pos[i]):
-            if not world.prey.alive[a]:
+            if not world.prey.alive[a]: # avoid prey being eaten by multiple pred
                 continue
 
             delta = world.pred.pos[i] - world.prey.pos[a]

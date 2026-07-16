@@ -1,4 +1,4 @@
-# Environmental evolution simulation for agent-based models.
+# Ethogram
 This is an ongoing personal project born from a desire to explore my interest in wildlife and ecology through the lens of computer science. By combining the field of artificial intelligence with ecological simulation, I have recreated predator-prey interaction in a two-dimensional space. This project aims to create an accurate representation of a natural environment while allowing certain parameters to be changed, resulting in an experiment which allows us to see how modifying certain conditions in a natural environment may affect the creatures within it.
 
 This project is written in Python using the [Arcade API](https://api.arcade.academy/en/stable/) as the visual framework.
@@ -8,6 +8,7 @@ Certain aspects of this simulation are more true-to-life than others. At the mom
 - Basic movement
 - Feeding behavior
 - Life/Death and Reproduction
+- Primitive food chain
 
 ### Movement
 Movement is currently a conditional model which swaps states (search for food, flee, reproduce) depending on the energy level of the agent and (for prey) whether a predator is nearby. 

@@ -7,14 +7,14 @@ from logic.state import WorldState
 from logic.consumption import step_consumption
 from logic.lifecycle import step_lifecycle
 from constants import *
-from logic.fsm import step_fsm_prey
+from logic.fsm import step_fsm
 
 # Constants
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 WINDOW_TITLE = "evolve fsm"
-NUM_PREY = 50
-NUM_PREDS = 0
+NUM_PREY = 70
+NUM_PREDS = 5
 NUM_PLANTS = 700
 SIM_DT = 0.05 # 20 Hz sim
 
@@ -66,7 +66,7 @@ class GameView(arcade.Window):
         while self.accumulator >= SIM_DT:
             steps += 1
             # Sim calculations
-            step_fsm_prey(self.world, delta_time)
+            step_fsm(self.world, delta_time)
             step_consumption(self.world)
             step_lifecycle(self.world, delta_time)
             self.world.grid.update_grid(self.world.prey, self.world.pred,self.world.plant)            
@@ -173,6 +173,8 @@ class GameView(arcade.Window):
                 self.selected_id = None
                 return
             energy = self.world.pred.energy[self.selected_id]
+            speed = np.linalg.norm(self.world.pred.vel[self.selected_id])
+            state = self.world.pred.state[self.selected_id]
 
         panel_width = 220
         panel_height = 120

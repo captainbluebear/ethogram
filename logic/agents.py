@@ -12,10 +12,10 @@ class PreyState:
     n_prey: int
 
     __slots__ = ("cap", "n_prey", "alive", "free_indices", 
-                 "pos", "vel", "dir", "energy", 
+                 "pos", "vel", "energy", 
                  "mate_drive", "eat_drive", "refractory",
                  "genome", "state")
-                #thirst? age, fertility, strength, stealth, sex
+                #thirst? age, fertility, strength, stealth
     
     def __init__(self, n, width, height):
         self.n_prey = n
@@ -30,10 +30,6 @@ class PreyState:
         self.pos[:n] = np.random.rand(n, 2) * [width, height]   # X,Y position in world
 
         self.vel = np.zeros((self.cap, 2), dtype=np.float32)    # Speed vector
-        
-        # self.dir = np.zeros((self.cap, 2), dtype=np.float32)    # Direction, directly related to vel but stored for efficiency
-        # angles = np.random.rand(n) * 2 * np.pi # radians
-        # self.dir[:n] = np.stack([np.sin(angles), np.cos(angles)], axis=1)
 
         self.energy = np.zeros((self.cap), dtype=np.float32)
         self.energy[:n] = PREY_START_ENERGY              # Agent energy
@@ -42,7 +38,7 @@ class PreyState:
         self.mate_drive = np.zeros((self.cap, 1), dtype=np.float32)
         self.eat_drive = np.zeros((self.cap, 1), dtype=np.float32)
 
-        self.refractory = np.zeros(self.cap)                    # Reproduction cooldown timer (avoid spam)
+        self.refractory = np.full(self.cap, REFRACTORY_START, dtype=np.float32)      # Reproduction cooldown timer (avoid spam)
 
         self.state = np.full(self.cap, State.IDLE, dtype=np.uint8)
         self.genome = np.ones((self.cap, N_STATES), dtype=np.float32)   # behavior weights for primitive evolution
@@ -57,14 +53,12 @@ class PreyState:
         self.alive[i] = True
         self.pos[i] = pos
         self.vel[i] = 0
-        # angle = random() * 2 * np.pi
-        # self.dir[i] = [np.sin(angle), np.cos(angle)]
         self.energy[i] = PREY_START_ENERGY
         self.mate_drive[i] = 0
         self.eat_drive[i] = 0
         self.refractory[i] = 0
         self.state[i] = State.IDLE
-        print(f"Pop: {self.n_prey}")
+        print(f"Prey pop: {self.n_prey}")
         # TODO Handle crossover mutation generation here
 
     def remove_agent(self, idx: int):
@@ -80,37 +74,61 @@ class PredState:
     alive: np.ndarray
     energy: np.ndarray
     n_pred: int
-    __slots__ = ("pos", "vel", "dir", "alive", "energy", "n_pred", "cap", "mate_drive", "free_indices")
+    __slots__ = ("cap", "n_pred", "alive", "free_indices", 
+                 "pos", "vel", "energy", 
+                 "mate_drive", "eat_drive", "refractory",
+                 "genome", "state")
+                #thirst? age, fertility, strength, stealth
     
     
     def __init__(self, n, width, height):
         self.n_pred = n
-        self.cap = int(n * POP_ARRAY_FAC)
-        
-        self.pos = np.zeros((self.cap, 2), dtype=np.float32)
-        self.pos[:n] = np.random.rand(n, 2) * [width, height]
-
-        self.vel = np.zeros((self.cap, 2), dtype=np.float32)
-        
-        self.dir = np.zeros((self.cap, 2), dtype=np.float32)
-        angles = np.random.rand(n) * 2 * np.pi # radians
-        self.dir[:n] = np.stack([np.sin(angles), np.cos(angles)], axis=1)
+        self.cap = int(n * POP_ARRAY_FAC) # total capacity of array (not starting population)
 
         self.alive = np.zeros((self.cap), dtype=np.bool)
-        self.alive[:n] = np.ones(n, dtype=np.bool)
-        self.free_indices = list(range(n, self.cap)) # maintain a list of free indices
+        self.alive[:n] = np.ones(n, dtype=np.bool)              # Total population
+        self.free_indices = list(range(n, self.cap))            # maintain a list of free indices
+                                                                # alive and free_indices are complements to reduce computation
 
-        self.energy = np. zeros((self.cap), dtype=np.float32)
-        self.energy[:n] = 10 # PRED_START_ENERGY
+        self.pos = np.zeros((self.cap, 2), dtype=np.float32)
+        self.pos[:n] = np.random.rand(n, 2) * [width, height]   # X,Y position in world
 
-    def add_agent(self, pos):
+        self.vel = np.zeros((self.cap, 2), dtype=np.float32)    # Speed vector
+
+        self.energy = np.zeros((self.cap), dtype=np.float32)
+        self.energy[:n] = PRED_START_ENERGY                     # Agent energy
+
+        # Drive to reproduce and eat. Initalized to 0
+        self.mate_drive = np.zeros((self.cap, 1), dtype=np.float32)
+        self.eat_drive = np.zeros((self.cap, 1), dtype=np.float32)
+
+        self.refractory = np.full(self.cap, REFRACTORY_START, dtype=np.float32)      # Reproduction cooldown timer (avoid spam)
+
+        self.state = np.full(self.cap, State.IDLE, dtype=np.uint8)
+        self.genome = np.ones((self.cap, N_STATES-1), dtype=np.float32)   # behavior weights for primitive evolution
+
+    def add_agent(self, pos, parent_a_idx, parent_b_idx):
+        if len(self.free_indices) == 0:
+            print("Err: No more free pred indices.")
+            return 
+        
+        self.n_pred += 1
         i = self.free_indices.pop()
         self.alive[i] = True
         self.pos[i] = pos
         self.vel[i] = 0
-        angle = random() * 2 * np.pi
-        self.dir[i] = [np.sin(angle), np.cos(angle)]
-        self.energy[i] = 10
+        self.energy[i] = PRED_START_ENERGY
+        self.mate_drive[i] = 0
+        self.eat_drive[i] = 0
+        self.refractory[i] = 0
+        self.state[i] = State.IDLE
+        print(f"Pred pop: {self.n_pred}")
+        # TODO Handle crossover mutation generation here
+
+    def remove_agent(self, idx: int):
+        self.n_pred -= 1
+        self.alive[idx] = False
+        self.free_indices.append(idx)
 
 
 class PlantState:

@@ -7,7 +7,7 @@ from logic.state import WorldState
 def step_lifecycle(world:WorldState, dt):
     plant_reproduction(world, dt)
     prey_reproduction(world)
-    # pred_reproduction(world, dt)
+    pred_reproduction(world)
     step_death(world, dt)
 
 def plant_reproduction(world:WorldState, dt): # Handle plants coming back to life
@@ -44,15 +44,14 @@ def prey_reproduction(world:WorldState):
 
         for p2 in world.grid.nearby_prey(world.prey.pos[p1]):
             # Avoid dead prey reproducing (since grid only updates per update rate), avoid already-mated agents, avoid
-            # agents not looking to mate
-            if not world.prey.alive[p2] or p2 in already_mated or state[p2] != State.MATE:
+            # agents not looking to mate, avoid self
+            if not world.prey.alive[p2] or p2 in already_mated or state[p2] != State.MATE or p2 == p1:
                 continue
 
             delta = world.prey.pos[p1] - world.prey.pos[p2]
             d2 = np.sum(delta**2)
             if d2 < distsq:
                 prey.add_agent(prey_pos[p1], 0, 0) # Spawn at p1's position
-                print("Mated")
                 
                 ### Parent Operations ###
                 prey_energy[p1] -= REPRO_COST           # Reduce energy after mate
@@ -63,41 +62,44 @@ def prey_reproduction(world:WorldState):
 
                 already_mated.add(p1)                   # Avoid double mating
                 already_mated.add(p2)
-         
-# def pred_reproduction(world:WorldState, dt):
-#     pred_pos = world.pred.pos
-#     pred_alive = world.pred.alive
-#     pred_energy = world.pred.energy
-#     distsq = (AGENT_SIZE*2)**2
-    
-#     for i in np.flatnonzero(pred_alive):
-#         if not world.pred.free_indices:
-#             print("WARNING: [pred] Population storage limit reached.")
-#             return # This will turn into expansion
-        
-#         if pred_energy[i] < REPRO_THRESHOLD:
-#             continue
-        
-#         nearby_pred = world.grid.nearby_pred(pred_pos[i])
-#         if nearby_pred:
-#             np.random.shuffle(nearby_pred)
 
-#             xi, yi = pred_pos[i]
-            
-#             for p in nearby_pred:
-#                 if p == i:
-#                     continue
-#                 elif pred_energy[p] < REPRO_THRESHOLD:
-#                     continue
+def pred_reproduction(world:WorldState):
+    '''Returns a set of all pred that mated.'''
+    pred_pos = world.pred.pos
+    pred_energy = world.pred.energy
+    pred_refractory = world.pred.refractory
+    state = world.pred.state
+    pred = world.pred
+    pred_alive = world.pred.alive
+    distsq = (AGENT_SIZE*2)**2
+    already_mated = set()
 
-#                 dx = (xi - pred_pos[p][0])
-#                 dy = (yi - pred_pos[p][1])
-#                 dist2 = dx*dx + dy*dy
-#                 if dist2 <= distsq:
-#                     world.pred.add_agent(pred_pos[i])
-#                     pred_energy[i] -= REPRO_COST
-#                     pred_energy[p] -= REPRO_COST
-#                     break # one pairing only!
+    for p1 in np.flatnonzero(world.pred.alive):
+        if p1 in already_mated or state[p1] != State.MATE: # Skip mated agents and agents not looking to mate
+            continue
+
+        for p2 in world.grid.nearby_pred(pred_pos[p1]):
+            # Avoid dead prey reproducing (since grid only updates per update rate), avoid already-mated agents, avoid
+            # agents not looking to mate
+            if not pred_alive[p2] or p2 in already_mated or state[p2] != State.MATE or p2 == p1:
+                continue
+
+            delta = world.pred.pos[p1] - world.pred.pos[p2]
+            d2 = np.sum(delta**2)
+            if d2 < distsq:
+                pred.add_agent(pred_pos[p1], 0, 0) # Spawn at p1's position
+                print("Mated")
+                
+                ### Parent Operations ###
+                pred_energy[p1] -= REPRO_COST           # Reduce energy after mate
+                pred_energy[p2] -= REPRO_COST
+
+                pred_refractory[p1] -= REFRACTORY_GAP   # Increase refractory period again
+                pred_refractory[p2] -= REFRACTORY_GAP
+
+                already_mated.add(p1)                   # Avoid double mating
+                already_mated.add(p2)
+
 
 def step_death(world:WorldState, dt):
     """If energy drops to 0, kill agent."""
