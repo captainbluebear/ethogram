@@ -41,13 +41,26 @@ def update_drive_prey(prey: PreyState, world):
     has_pred = nearest_pred >= 0
     nearest_dist = np.full(prey.cap, np.inf, dtype=np.float32)
     nearest_dist[has_pred] = np.linalg.norm(prey.pos[has_pred] - world.pred.pos[nearest_pred[has_pred]], axis=1)
-    flee_drive = np.where(nearest_dist <= c.PREY_FLEE_THRESHOLD, 1.0 - (nearest_dist/c.PREY_FLEE_THRESHOLD), 0.0)
+    flee_drive = np.where(nearest_dist <= c.PREY_FLEE_THRESHOLD, 1.0 - (nearest_dist/c.PREY_FLEE_THRESHOLD)**1.5, 0.0)
+    # TODO consider making flee_drive squared.
 
     # Set all raw drives
     raw[:, c.State.EAT] = eat_drive
     raw[:, c.State.MATE] = mate_drive
     raw[:, c.State.FLEE] = flee_drive
     raw[:, c.State.IDLE] = c.IDLE_BASELINE
+    
+
+    i = 0
+    # print(
+    #     f"E={prey.energy[i]:5.2f} "
+    #     f"Ref={prey.refractory[i]:5.2f} "
+    #     f"Dist={nearest_dist[i]:5.2f} | "
+    #     f"Idle={raw[i,c.State.IDLE]:.2f} "
+    #     f"Eat={raw[i,c.State.EAT]:.2f} "
+    #     f"Mate={raw[i,c.State.MATE]:.2f} "
+    #     f"Flee={raw[i,c.State.FLEE]:.2f}"
+    # )
 
     return raw
 

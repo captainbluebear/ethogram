@@ -1,11 +1,13 @@
 '''Handle all movement definitions, such as what happens when idling/fleeing/finding food/mating.'''
 import numpy as np
 from logic.agents import PreyState, PredState
+from constants import State
 from logic.detection import prey_get_closest_food, prey_get_closest_prey, prey_get_closest_pred, pred_get_closest_prey, pred_get_closest_pred
 
-FLEE_FACTOR = 12.0
-FOOD_FACTOR = 50.0
-MATE_FACTOR = 7.0
+FLEE_FACTOR = 10.0
+PREY_FOOD_FACTOR = 50.0
+PRED_FOOD_FACTOR = 60.0
+MATE_FACTOR = 50.0
 WANDER_FACTOR = 40.0
 
 def prey_idle(prey: PreyState):
@@ -20,8 +22,8 @@ def prey_move_food(world, prey: PreyState):
     
     food_seen = closest_food >= 0
     dist = plant.pos[closest_food[food_seen]] - prey.pos[food_seen]
-    dist_norm = dist/np.linalg.norm(dist, axis=1, keepdims=True)    # Normalize so that speed is constant
-    vels[food_seen] = dist_norm*FOOD_FACTOR
+    dist_norm = dist/(np.linalg.norm(dist, axis=1, keepdims=True) + 1e-8)    # Normalize so that speed is constant
+    vels[food_seen] = dist_norm*PREY_FOOD_FACTOR
 
     no_food_seen = (closest_food < 0) & prey.alive # get indices where no food is seen but the agent exists
     vels[no_food_seen] = _prey_wander(prey)[no_food_seen]
@@ -33,8 +35,10 @@ def prey_move_mate(world, prey: PreyState):
     vels = np.zeros_like(prey.vel)
     closest_prey = prey_get_closest_prey(world)
 
-    mask = closest_prey >= 0
-    vels[mask] = (prey.pos[closest_prey[mask]] - prey.pos[mask])*MATE_FACTOR
+    mask = (closest_prey >= 0) & (prey.state[closest_prey] == State.MATE) # Only grab other mateable prey
+    dist = prey.pos[closest_prey[mask]] - prey.pos[mask]
+    dist_norm = dist/(np.linalg.norm(dist, axis=1, keepdims=True) + 1e-8)    # Normalize so that speed is constant
+    vels[mask] = dist_norm*MATE_FACTOR
 
     no_prey_seen = (closest_prey < 0) & prey.alive # get indices where no prey is seen but the agent exists
     vels[no_prey_seen] = _prey_wander(prey)[no_prey_seen]
@@ -48,7 +52,7 @@ def prey_flee(world, prey: PreyState):
     closest_pred = prey_get_closest_pred(world)
 
     mask = closest_pred >= 0
-    vels[mask] = (prey.pos[mask] - pred.pos[closest_pred[mask]])*FLEE_FACTOR
+    vels[mask] = (prey.pos[mask] - pred.pos[closest_pred[mask]])*FLEE_FACTOR # Flee with extra flee!
 
     return vels
 
@@ -101,7 +105,7 @@ def pred_move_food(world, pred: PredState):
     prey_seen = closest_prey >= 0
     dist = prey.pos[closest_prey[prey_seen]] - pred.pos[prey_seen]
     dist_norm = dist/np.linalg.norm(dist, axis=1, keepdims=True)    # Normalize so that speed is constant
-    vels[prey_seen] = dist_norm*FOOD_FACTOR
+    vels[prey_seen] = dist_norm*PRED_FOOD_FACTOR
 
     no_prey_seen = (closest_prey < 0) & pred.alive # get indices where no food is seen but the agent exists
     vels[no_prey_seen] = _pred_wander(pred)[no_prey_seen]
@@ -113,8 +117,10 @@ def pred_move_mate(world, pred: PredState):
     vels = np.zeros_like(pred.vel)
     closest_pred = pred_get_closest_pred(world)
 
-    mask = closest_pred >= 0
-    vels[mask] = (pred.pos[closest_pred[mask]] - pred.pos[mask])*MATE_FACTOR
+    mask = (closest_pred >= 0) & (pred.state[closest_pred] == State.MATE) # Only grab other mateable agents
+    dist = pred.pos[closest_pred[mask]] - pred.pos[mask]
+    dist_norm = dist/(np.linalg.norm(dist, axis=1, keepdims=True) + 1e-8)    # Normalize so that speed is constant
+    vels[mask] = dist_norm*MATE_FACTOR
 
     no_prey_seen = (closest_pred < 0) & pred.alive # get indices where no pred is seen but the agent exists
     vels[no_prey_seen] = _pred_wander(pred)[no_prey_seen]

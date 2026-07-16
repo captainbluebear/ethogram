@@ -1,6 +1,6 @@
 """Handle all life/death logic, including reproduction."""
 import numpy as np
-from constants import AGENT_SIZE, REGROWTH_TIME, REPRO_COST, MATE_THRESHOLD, REFRACTORY_GAP
+from constants import AGENT_SIZE, REGROWTH_TIME, REPRO_COST, MATE_THRESHOLD, PREY_REFRACTORY_GAP, PRED_REFRACTORY_GAP
 from constants import State
 from logic.state import WorldState
 
@@ -57,8 +57,8 @@ def prey_reproduction(world:WorldState):
                 prey_energy[p1] -= REPRO_COST           # Reduce energy after mate
                 prey_energy[p2] -= REPRO_COST
 
-                prey_refractory[p1] -= REFRACTORY_GAP   # Increase refractory period again
-                prey_refractory[p2] -= REFRACTORY_GAP
+                prey_refractory[p1] -= PREY_REFRACTORY_GAP   # Increase refractory period again
+                prey_refractory[p2] -= PREY_REFRACTORY_GAP
 
                 already_mated.add(p1)                   # Avoid double mating
                 already_mated.add(p2)
@@ -88,14 +88,14 @@ def pred_reproduction(world:WorldState):
             d2 = np.sum(delta**2)
             if d2 < distsq:
                 pred.add_agent(pred_pos[p1], 0, 0) # Spawn at p1's position
-                print("Mated")
+                # print("Mated")
                 
                 ### Parent Operations ###
                 pred_energy[p1] -= REPRO_COST           # Reduce energy after mate
                 pred_energy[p2] -= REPRO_COST
 
-                pred_refractory[p1] -= REFRACTORY_GAP   # Increase refractory period again
-                pred_refractory[p2] -= REFRACTORY_GAP
+                pred_refractory[p1] -= PRED_REFRACTORY_GAP   # Increase refractory period again
+                pred_refractory[p2] -= PRED_REFRACTORY_GAP
 
                 already_mated.add(p1)                   # Avoid double mating
                 already_mated.add(p2)

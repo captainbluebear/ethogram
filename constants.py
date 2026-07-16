@@ -18,23 +18,25 @@ POP_ARRAY_FAC = 6       # How much larger the initial numpy arrays should be fro
 MAX_ENERGY = 60         # Maximum energy an agent can hold
 MATE_THRESHOLD = 30     # Energy threshold for mating
 REPRO_COST = 5          # Energy taken when reproducing
-REFRACTORY_START = 10   # Time in seconds before reproduction is allowed; this is the base value when agents spawn
-REFRACTORY_GAP = 2      # Time in seconds which gets added after a successful reproduction
 
 ##### PREY VARIABLES #####
 PREY_START_ENERGY = 10      # How much energy prey starts with
 PREY_VISION_RADIUS = 75     # Radius of detection in pixels
-PREY_FLEE_THRESHOLD = 15    # Pixel radius at which flee desire starts
+PREY_FLEE_THRESHOLD = 50    # Pixel radius at which flee desire starts
+PREY_REFRACTORY_START = 10   # Time in seconds before reproduction is allowed; this is the base value when agents spawn
+PREY_REFRACTORY_GAP = 2      # Time in seconds which gets added after a successful reproduction
 
-PREY_ENERGY = 5            # Amount of energy gained from consuming prey
+PREY_ENERGY = 7            # Amount of energy gained from consuming prey
 
 ##### PREDATOR VARIABLES #####
 PRED_START_ENERGY = 10
-PRED_VISION_RADIUS = 75     # Radius of detection in pixels
+PRED_VISION_RADIUS = 40     # Radius of detection in pixels
+PRED_REFRACTORY_START = 10   # Time in seconds before reproduction is allowed; this is the base value when agents spawn
+PRED_REFRACTORY_GAP = 5      # Time in seconds which gets added after a successful reproduction
 
 ##### PLANT VARIABLES #####
 REGROWTH_TIME = 15      # Time for plants to regrow
-PLANT_ENERGY = 2        # Amount of energy gained from consuming plant
+PLANT_ENERGY = 2.5        # Amount of energy gained from consuming plant
 
 
 

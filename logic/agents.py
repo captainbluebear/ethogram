@@ -38,7 +38,7 @@ class PreyState:
         self.mate_drive = np.zeros((self.cap, 1), dtype=np.float32)
         self.eat_drive = np.zeros((self.cap, 1), dtype=np.float32)
 
-        self.refractory = np.full(self.cap, REFRACTORY_START, dtype=np.float32)      # Reproduction cooldown timer (avoid spam)
+        self.refractory = np.full(self.cap, PREY_REFRACTORY_START, dtype=np.float32)      # Reproduction cooldown timer (avoid spam)
 
         self.state = np.full(self.cap, State.IDLE, dtype=np.uint8)
         self.genome = np.ones((self.cap, N_STATES), dtype=np.float32)   # behavior weights for primitive evolution
@@ -58,7 +58,7 @@ class PreyState:
         self.eat_drive[i] = 0
         self.refractory[i] = 0
         self.state[i] = State.IDLE
-        print(f"Prey pop: {self.n_prey}")
+        # print(f"Prey pop: {self.n_prey}")
         # TODO Handle crossover mutation generation here
 
     def remove_agent(self, idx: int):
@@ -102,7 +102,7 @@ class PredState:
         self.mate_drive = np.zeros((self.cap, 1), dtype=np.float32)
         self.eat_drive = np.zeros((self.cap, 1), dtype=np.float32)
 
-        self.refractory = np.full(self.cap, REFRACTORY_START, dtype=np.float32)      # Reproduction cooldown timer (avoid spam)
+        self.refractory = np.full(self.cap, PRED_REFRACTORY_START, dtype=np.float32)      # Reproduction cooldown timer (avoid spam)
 
         self.state = np.full(self.cap, State.IDLE, dtype=np.uint8)
         self.genome = np.ones((self.cap, N_STATES-1), dtype=np.float32)   # behavior weights for primitive evolution

@@ -13,9 +13,9 @@ from logic.fsm import step_fsm
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 WINDOW_TITLE = "evolve fsm"
-NUM_PREY = 70
-NUM_PREDS = 5
-NUM_PLANTS = 700
+NUM_PREY = 80
+NUM_PREDS = 10
+NUM_PLANTS = 1000
 SIM_DT = 0.05 # 20 Hz sim
 
 class GameView(arcade.Window):
@@ -60,15 +60,30 @@ class GameView(arcade.Window):
         self.max_history = 1000  # how many points to keep
 
 
+    # ---------- PREY ----------
+    PREY_COLORS = {
+        State.IDLE:  (40, 200, 40),      # Green
+        State.EAT:   (170, 255, 40),     # Lime
+        State.FLEE:  (40, 220, 255),     # Cyan
+        State.MATE:  (120, 255, 170),    # Mint
+    }
+
+    # ---------- PREDATORS ----------
+    PRED_COLORS = {
+        State.IDLE:  (170, 40, 40),      # Dark Red
+        State.EAT:  (255, 50, 50),      # Bright Red
+        State.MATE:  (255, 80, 200),     # Magenta
+    }
+
     def on_update(self, delta_time):    
         self.accumulator += delta_time
         steps = 0
         while self.accumulator >= SIM_DT:
             steps += 1
             # Sim calculations
-            step_fsm(self.world, delta_time)
+            step_fsm(self.world, SIM_DT)
             step_consumption(self.world)
-            step_lifecycle(self.world, delta_time)
+            step_lifecycle(self.world, SIM_DT)
             self.world.grid.update_grid(self.world.prey, self.world.pred,self.world.plant)            
             self.accumulator -= SIM_DT
 
@@ -124,6 +139,14 @@ class GameView(arcade.Window):
                 sprite.visible = False
             else:
                 sprite.visible = True
+
+        for i, sprite in enumerate(self.prey_list):
+            if self.world.prey.alive[i]:
+                sprite.color = self.PREY_COLORS[self.world.prey.state[i]]
+
+        for i, sprite in enumerate(self.pred_list):
+            if self.world.pred.alive[i]:
+                sprite.color = self.PRED_COLORS[self.world.pred.state[i]]
 
     def setup(self):
         """Set up the game here. Call this function to restart the game."""
@@ -196,6 +219,16 @@ class GameView(arcade.Window):
             arcade.draw_circle_outline(
                 sprite.center_x,
                 sprite.center_y,
+                AGENT_SIZE + 4,
+                arcade.color.YELLOW,
+                2
+            )
+        
+        # Temporarily perma print index 0 for debugging purposes
+        zero = self.prey_list[0]
+        arcade.draw_circle_outline(
+                zero.center_x,
+                zero.center_y,
                 AGENT_SIZE + 4,
                 arcade.color.YELLOW,
                 2
