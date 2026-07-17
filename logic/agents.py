@@ -130,7 +130,6 @@ class PredState:
         self.alive[idx] = False
         self.free_indices.append(idx)
 
-
 class PlantState:
     pos: np.ndarray
     alive: np.ndarray
@@ -144,75 +143,61 @@ class PlantState:
         self.alive = np.ones(n, dtype=np.bool) # start as "alive" (grown)
         self.growth = np.zeros(n, dtype=np.float32) # time spent growing
 
+###### Spatial Grid Handling ######
 class Grid:
     def __init__(self, width, height, cellsize, prey:PreyState, pred:PredState, plant:PlantState):
         self.cellsize = cellsize
-        self.grid_prey = defaultdict(list)      # Holds idxs of prey in their respective grid cells
-        self.grid_pred = defaultdict(list)      # Holds idxs of preds...
-        self.grid_plant = defaultdict(list)     # Holdx idxs of plants...
-        self.grid_height = height//cellsize + 1
-        self.grid_width = width//cellsize + 1
+        self.gw = width//cellsize + 1
+        self.gh = height//cellsize + 1
+        self.n_cells = self.gw*self.gh
         self.update_grid(prey, pred, plant)
     
-    def update_grid(self, prey:PreyState, pred:PredState, plant:PlantState):
-        self.grid_prey.clear()
-        self.grid_pred.clear()
-        self.grid_plant.clear()
+    def _build_csr(self, state): # Storage by cell idx and 
+        idx = np.flatnonzero(state.alive)
+        if idx.size == 0:
+            empty_offsets = np.zeros(self.n_cells + 1, dtype=np.int64)
+            return empty_offsets, np.empty(0, dtype=np.int64)
+        
+        cells = np.floor_divide(state.pos[idx], self.cellsize).astype(np.int64)
+        np.clip(cells[:, 0], 0, self.gw - 1, out=cells[:, 0])   # In-place clipping for bounds
+        np.clip(cells[:, 1], 0, self.gh - 1, out=cells[:, 1])
+        cell_id = cells[:, 0] * self.gh + cells[:, 1]           # Flatten cells into a single ID - same cell = same ID
 
-        for i in np.flatnonzero(prey.alive):
-            self.grid_prey[(int(prey.pos[i][0]//self.cellsize), 
-                            int(prey.pos[i][1]//self.cellsize))].append(i)
+        order = np.argsort(cell_id, kind='stable')      # Sort by cell_id to group same ID idxs together
+        sorted_idx = idx[order]
+        sorted_cells = cell_id[order]
         
-        for i in np.flatnonzero(pred.alive):
-            self.grid_pred[(int(pred.pos[i][0]//self.cellsize), 
-                            int(pred.pos[i][1]//self.cellsize))].append(i)
-        
-        for i in np.flatnonzero(plant.alive):
-            self.grid_plant[(int(plant.pos[i][0]//self.cellsize), 
-                            int(plant.pos[i][1]//self.cellsize))].append(i)
+        counts = np.bincount(sorted_cells, minlength=self.n_cells)  # Count how many times each cell appears in sorted_cells
+        offsets = np.zeros(self.n_cells+1, dtype=np.int64)
+        np.cumsum(counts, out=offsets[1:])
+
+        return offsets, sorted_idx
+
+    def update_grid(self, prey: PreyState, pred: PredState, plant: PlantState):
+        self.prey_offset, self.prey_flat = self._build_csr(prey)
+        self.pred_offset, self.pred_flat = self._build_csr(pred)
+        self.plant_offset, self.plant_flat = self._build_csr(plant)
+
+    def _nearby(self, offset, flat, agent_pos, r):
+        cx = int(agent_pos[0]//self.cellsize)
+        cy = int(agent_pos[1]//self.cellsize)
+        result = []
+        x0, x1 = max(cx-r, 0), min(cx+r, self.gw-1) # Grab range within radius (plus wrapping)
+        y0, y1 = max(cy-r, 0), min(cy+r, self.gh-1)
+        for x in range(x0, x1+1):
+            base = x*self.gh    # Calculate the grid fmla
+            for y in range(y0, y1+1):
+                c = base + y       # Calculating grid fmla
+                s, e = offset[c], offset[c+1]
+                if s < e:
+                    result.extend(flat[s:e].tolist())
+        return result
+
+    def nearby_prey(self, agent_pos, r=1):
+        return self._nearby(self.prey_offset, self.prey_flat, agent_pos, r)
     
-    def nearby_prey(self, agent_pos, r=1) -> list[int]:
-        '''
-        Given an agent's (x,y) position as returned by agent.pos[agent_idx], 
-        grab prey in the neighboring cells (up to given radius) as well as self.
-        '''
-        prey = []
-        cx = int(agent_pos[0]//self.cellsize)
-        cy = int(agent_pos[1]//self.cellsize)
-        for x in range(-r, r+1):
-            for y in range(-r, r+1):
-                cell = self.grid_prey.get((cx + x, cy + y))
-                if cell:
-                    prey.extend(cell)
-        return prey
+    def nearby_pred(self, agent_pos, r=1):
+        return self._nearby(self.pred_offset, self.pred_flat, agent_pos, r)
 
-    def nearby_pred(self, agent_pos, r=1) -> list[int]:
-        '''
-        Given an agent's (x,y) position as returned by agent.pos[agent_idx], 
-        grab prey in 8 directly neighboring cells and self.
-        '''
-        pred = []
-        cx = int(agent_pos[0]//self.cellsize)
-        cy = int(agent_pos[1]//self.cellsize)
-        for x in range(-r, r+1):
-            for y in range(-r, r+1):
-                cell = self.grid_pred.get((cx + x, cy + y))
-                if cell:
-                    pred.extend(cell)
-        return pred
-
-    def nearby_plant(self, agent_pos, r=1) -> list[int]:
-        '''
-        Given an agent's (x,y) position as returned by agent.pos[agent_idx], 
-        grab prey in 8 directly neighboring cells and self.
-        '''
-        plant = []
-        cx = int(agent_pos[0]//self.cellsize)
-        cy = int(agent_pos[1]//self.cellsize)
-        for x in range(-r, r+1):
-            for y in range(-r, r+1):
-                plant.extend(self.grid_plant.get((cx + x, cy + y), ()))
-                cell = self.grid_plant.get((cx + x, cy + y))
-                if cell:
-                    plant.extend(cell)
-        return plant
+    def nearby_plant(self, agent_pos, r=1):
+        return self._nearby(self.plant_offset, self.plant_flat, agent_pos, r)

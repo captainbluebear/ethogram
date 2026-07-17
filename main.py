@@ -12,7 +12,7 @@ from logic.fsm import step_fsm
 # Constants
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
-WINDOW_TITLE = "evolve fsm"
+WINDOW_TITLE = "🌿 Ethogram"
 NUM_PREY = 80
 NUM_PREDS = 10
 NUM_PLANTS = 1000
