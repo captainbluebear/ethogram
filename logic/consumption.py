@@ -31,5 +31,5 @@ def step_consume_pred(world:WorldState):
             delta = world.pred.pos[i] - world.prey.pos[a]
             d2 = np.sum(delta**2)
             if d2 < (AGENT_SIZE*2)**2:
-                world.prey.remove_agent(a)      # Handle prey death
+                world.prey.remove_agent(int(a))      # Handle prey death
                 world.pred.energy[i] += PREY_ENERGY

@@ -123,13 +123,6 @@ def update_drive_pred(pred: PredState, world):
     mate_drive = np.clip((pred.energy) / (c.MAX_ENERGY - c.MATE_THRESHOLD), 0.0, 1.0) # Normalized drive from above threshold
     mate_drive = np.where(pred.refractory <= 0, mate_drive, 0.0) # If in refractory period automatically set drive to 0
 
-    # # Flee drive
-    # nearest_pred = prey_get_closest_pred(world)
-    # has_pred = nearest_pred >= 0
-    # nearest_dist = np.full(prey.cap, np.inf, dtype=np.float32)
-    # nearest_dist[has_pred] = np.linalg.norm(prey.pos[has_pred] - world.pred.pos[nearest_pred[has_pred]], axis=1)
-    # flee_drive = np.where(nearest_dist <= c.PREY_FLEE_THRESHOLD, 1.0 - (nearest_dist/c.PREY_FLEE_THRESHOLD), 0.0)
-
     # Set all raw drives
     raw[:, c.State.EAT] = eat_drive
     raw[:, c.State.MATE] = mate_drive

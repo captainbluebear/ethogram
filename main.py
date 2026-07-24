@@ -9,12 +9,15 @@ from logic.lifecycle import step_lifecycle
 from constants import *
 from logic.fsm import step_fsm
 
+import cProfile
+import pstats
+
 # Constants
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 WINDOW_TITLE = "🌿 Ethogram"
 NUM_PREY = 80
-NUM_PREDS = 10
+NUM_PREDS = 1
 NUM_PLANTS = 1000
 SIM_DT = 0.05 # 20 Hz sim
 
@@ -50,15 +53,16 @@ class GameView(arcade.Window):
         self.selected_type = None
         self.selected_id = None
 
-        # Population Graph
-        self.time_history = []
-        self.prey_history = []
-        self.pred_history = []
-        self.plant_history = []
-
-        self.sim_time = 0.0
-        self.max_history = 1000  # how many points to keep
-
+        # Grid lines
+        self.grid_lines = arcade.shape_list.ShapeElementList()
+        for x in range(0, self.world.width, CELLSIZE):
+            self.grid_lines.append(
+                arcade.shape_list.create_line(x, 0, x, self.world.height, arcade.color.DARK_GRAY)
+            )
+        for y in range(0, self.world.height, CELLSIZE):
+            self.grid_lines.append(
+                arcade.shape_list.create_line(0, y, self.world.width, y, arcade.color.DARK_GRAY)
+            )
 
     # ---------- PREY ----------
     PREY_COLORS = {
@@ -87,23 +91,6 @@ class GameView(arcade.Window):
             self.world.grid.update_grid(self.world.prey, self.world.pred,self.world.plant)            
             self.accumulator -= SIM_DT
 
-            ###### GRAPH OF POPULATION OVER TIME ######
-            self.sim_time += SIM_DT
-            prey_count = np.count_nonzero(self.world.prey.alive)
-            pred_count = np.count_nonzero(self.world.pred.alive)
-            plant_count = np.count_nonzero(self.world.plant.alive)
-
-            self.time_history.append(self.sim_time)
-            self.prey_history.append(prey_count)
-            self.pred_history.append(pred_count)
-            self.plant_history.append(plant_count)
-
-            # Keep history bounded
-            if len(self.time_history) > self.max_history:
-                self.time_history.pop(0)
-                self.prey_history.pop(0)
-                self.pred_history.pop(0)
-                self.plant_history.pop(0)
 
         if steps > 1:
             print(f"catch-up: ran {steps} steps this frame")
@@ -169,11 +156,7 @@ class GameView(arcade.Window):
         
         ##### DEBUG DRAWINGS #####
         # Draw grid
-        for x in range(0, self.world.width, CELLSIZE):
-            arcade.draw_line(x, 0,
-                x, self.world.height, arcade.color.DARK_GRAY)
-        for y in range(0, self.world.height, CELLSIZE):
-            arcade.draw_line(0, y, self.world.width, y, arcade.color.DARK_GRAY)
+        self.grid_lines.draw()
 
         # Render agent information (top left)
         energy = 0
@@ -225,16 +208,15 @@ class GameView(arcade.Window):
             )
         
         # Temporarily perma print index 0 for debugging purposes
-        zero = self.prey_list[0]
-        arcade.draw_circle_outline(
-                zero.center_x,
-                zero.center_y,
-                AGENT_SIZE + 4,
-                arcade.color.YELLOW,
-                2
-            )
+        # zero = self.prey_list[0]
+        # arcade.draw_circle_outline(
+        #         zero.center_x,
+        #         zero.center_y,
+        #         AGENT_SIZE + 4,
+        #         arcade.color.YELLOW,
+        #         2
+        #     )
         
-        self.draw_population_graph()
         
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int):
@@ -261,51 +243,6 @@ class GameView(arcade.Window):
         self.selected_type = None
         self.selected_id = None
 
-    def draw_population_graph(self):
-        if len(self.time_history) < 2:
-            return
-
-        # Graph position and size
-        graph_width = 400
-        graph_height = 150
-        left = self.width - graph_width - 20
-        bottom = 20
-
-        # Background panel
-        arcade.draw_lrbt_rectangle_filled(
-            left,
-            left + graph_width,
-            bottom,
-            bottom + graph_height,
-            (40, 40, 40, 180)
-        )
-
-        max_pop = max(
-            max(self.prey_history),
-            max(self.pred_history),
-            max(self.plant_history),
-            1
-        )
-
-        # Scale functions
-        def scale_x(i):
-            return left + (i / (len(self.time_history) - 1)) * graph_width
-
-        def scale_y(value):
-            return bottom + (value / max_pop) * graph_height
-
-        # Draw lines
-        for history, color in [
-            (self.prey_history, arcade.color.GREEN), # PREY
-            (self.pred_history, arcade.color.RED), # PRED
-            (self.plant_history, arcade.color.PURPLE), # PLANT
-        ]:
-            points = [
-                (scale_x(i), scale_y(value))
-                for i, value in enumerate(history)
-            ]
-            arcade.draw_line_strip(points, color, 2)
-
 
 
 def main():
@@ -313,7 +250,17 @@ def main():
     world = WorldState(NUM_PREY, NUM_PREDS, NUM_PLANTS, WINDOW_WIDTH, WINDOW_HEIGHT) 
     window = GameView(world)
     window.setup()
-    arcade.run()
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+    try:
+        arcade.run()
+    finally:
+        profiler.disable()
+        stats = pstats.Stats(profiler)
+        stats.sort_stats('cumulative')
+        stats.dump_stats('profile_output.prof')   # for snakeviz, if you want the flamegraph later
+        stats.print_stats(30)   
 
 
 if __name__ == "__main__":

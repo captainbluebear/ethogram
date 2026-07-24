@@ -181,17 +181,20 @@ class Grid:
     def _nearby(self, offset, flat, agent_pos, r):
         cx = int(agent_pos[0]//self.cellsize)
         cy = int(agent_pos[1]//self.cellsize)
-        result = []
+        slices = []
         x0, x1 = max(cx-r, 0), min(cx+r, self.gw-1) # Grab range within radius (plus wrapping)
         y0, y1 = max(cy-r, 0), min(cy+r, self.gh-1)
+        
         for x in range(x0, x1+1):
             base = x*self.gh    # Calculate the grid fmla
-            for y in range(y0, y1+1):
-                c = base + y       # Calculating grid fmla
-                s, e = offset[c], offset[c+1]
-                if s < e:
-                    result.extend(flat[s:e].tolist())
-        return result
+            start = offset[base+y0]
+            end = offset[base+y1+1]
+            if start < end:
+                slices.append(flat[start:end])
+        
+        if not slices:
+            return np.empty(0, dtype=np.int64) # should never happen - returns self
+        return np.concatenate(slices)
 
     def nearby_prey(self, agent_pos, r=1):
         return self._nearby(self.prey_offset, self.prey_flat, agent_pos, r)

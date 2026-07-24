@@ -46,7 +46,7 @@ def prey_get_closest_prey(world):
         pos_i = prey.pos[i]
         
         r_cells = ceil(c.PREY_VISION_RADIUS/c.CELLSIZE)
-        nearby_prey = np.array(world.grid.nearby_prey(pos_i, r=r_cells), dtype=np.int32)
+        nearby_prey = world.grid.nearby_prey(pos_i, r=r_cells)
         nearby_prey = nearby_prey[nearby_prey != i] # exclude self
 
         if len(nearby_prey) == 0: # If nothing is nearby skip thru
@@ -74,7 +74,7 @@ def prey_get_closest_food(world):
         pos_i = prey.pos[i]
         
         r_cells = ceil(c.PREY_VISION_RADIUS/c.CELLSIZE)
-        nearby_plant = np.array(world.grid.nearby_plant(pos_i, r=r_cells), dtype=np.int32)
+        nearby_plant = world.grid.nearby_plant(pos_i, r=r_cells)
         nearby_plant = nearby_plant[plant.alive[nearby_plant] == 1] # Only get EXISTING plants
                                                                     # FYI nearby_plant supposedly manages this,
                                                                     # but good in case of stale grid
@@ -107,7 +107,7 @@ def pred_get_closest_pred(world):
         pos_i = pred.pos[i]
         
         r_cells = ceil(c.PRED_VISION_RADIUS/c.CELLSIZE)
-        nearby_pred = np.array(world.grid.nearby_pred(pos_i, r=r_cells), dtype=np.int32)
+        nearby_pred = world.grid.nearby_pred(pos_i, r=r_cells)
         nearby_pred = nearby_pred[nearby_pred != i] # exclude self
 
         if len(nearby_pred) == 0: # If nothing is nearby skip thru
@@ -135,7 +135,7 @@ def pred_get_closest_prey(world):
         pos_i = pred.pos[i]
         
         r_cells = ceil(c.PRED_VISION_RADIUS/c.CELLSIZE)
-        nearby_prey = np.array(world.grid.nearby_prey(pos_i, r=r_cells), dtype=np.int32)
+        nearby_prey = world.grid.nearby_prey(pos_i, r=r_cells)
 
         if len(nearby_prey) == 0: # If nothing is nearby skip thru
             continue
